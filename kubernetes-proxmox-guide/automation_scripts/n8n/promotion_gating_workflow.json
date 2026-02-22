@@ -1,0 +1,83 @@
+{
+  "name": "K8s Production Promotion Gate",
+  "nodes": [
+    {
+      "parameters": {},
+      "name": "Start",
+      "type": "n8n-nodes-base.start",
+      "typeVersion": 1,
+      "position": [
+        250,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "path": "/webhook/promotion-gate",
+        "httpMethod": "POST"
+      },
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        450,
+        300
+      ],
+      "webhookId": "your-webhook-id"
+    },
+    {
+      "parameters": {
+        "chatId": "your-telegram-chat-id",
+        "text": "Production promotion request for PR #{{$json.body.pull_request.number}}. Approve?",
+        "additionalFields": {
+          "reply_markup": {
+            "inline_keyboard": [
+              [
+                {
+                  "text": "Approve",
+                  "callback_data": "approve_{{$json.body.pull_request.number}}"
+                },
+                {
+                  "text": "Deny",
+                  "callback_data": "deny_{{$json.body.pull_request.number}}"
+                }
+              ]
+            ]
+          }
+        }
+      },
+      "name": "Send Telegram Approval",
+      "type": "n8n-nodes-base.telegram",
+      "typeVersion": 1,
+      "position": [
+        650,
+        300
+      ],
+      "credentials": {
+        "telegramApi": {
+          "id": "your-telegram-credential-id",
+          "name": "Telegram account"
+        }
+      }
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "Send Telegram Approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {},
+  "id": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  }
+}

@@ -1,0 +1,35 @@
+# =============================================================================
+# Longhorn UI Ingress
+# =============================================================================
+# Exposes the Longhorn UI via the NGINX Ingress Controller with TLS.
+# Requires basic-auth secret to be created first:
+#   htpasswd -c auth your-username
+#   kubectl -n longhorn-system create secret generic basic-auth --from-file=auth
+# =============================================================================
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: longhorn-ingress
+  namespace: longhorn-system
+  annotations:
+    cert-manager.io/cluster-issuer: "letsencrypt-prod"
+    nginx.ingress.kubernetes.io/auth-type: basic
+    nginx.ingress.kubernetes.io/auth-secret: basic-auth
+    nginx.ingress.kubernetes.io/auth-realm: "Authentication Required"
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: longhorn.your-domain.com # REPLACE with your domain
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: longhorn-frontend
+            port:
+              number: 80
+  tls:
+  - hosts:
+    - longhorn.your-domain.com # REPLACE with your domain
+    secretName: longhorn-tls

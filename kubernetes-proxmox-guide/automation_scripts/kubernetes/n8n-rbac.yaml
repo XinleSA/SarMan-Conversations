@@ -1,0 +1,129 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: n8n-automation
+---
+# Service Account for creating tokens (the only long-lived token in the system)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: n8n-token-creator-sa
+  namespace: n8n-automation
+---
+# Role that ONLY allows token creation for other service accounts
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: token-creator-role
+  namespace: n8n-automation
+rules:
+- apiGroups: [""]
+  resources: ["serviceaccounts/token"]
+  verbs: ["create"]
+---
+# Bind the token-creator role to the token-creator SA
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: token-creator-binding
+  namespace: n8n-automation
+subjects:
+- kind: ServiceAccount
+  name: n8n-token-creator-sa
+roleRef:
+  kind: Role
+  name: token-creator-role
+  apiGroup: rbac.authorization.k8s.io
+---
+# Service Account for executing tasks (short-lived tokens only)
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: n8n-executor-sa
+  namespace: n8n-automation
+---
+# ClusterRole with read permissions across namespaces
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: n8n-cluster-reader
+rules:
+- apiGroups: [""]
+  resources: ["nodes", "namespaces"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: [""]
+  resources: ["pods", "pods/log", "services", "events"]
+  verbs: ["get", "list", "watch"]
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets", "daemonsets", "replicasets"]
+  verbs: ["get", "list", "watch"]
+---
+# Bind the cluster reader role to the executor SA
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: n8n-cluster-reader-binding
+subjects:
+- kind: ServiceAccount
+  name: n8n-executor-sa
+  namespace: n8n-automation
+roleRef:
+  kind: ClusterRole
+  name: n8n-cluster-reader
+  apiGroup: rbac.authorization.k8s.io
+---
+# Role with write permissions for the 'lab' namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: n8n-app-manager
+  namespace: lab
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: n8n-app-manager-binding-lab
+  namespace: lab
+subjects:
+- kind: ServiceAccount
+  name: n8n-executor-sa
+  namespace: n8n-automation
+roleRef:
+  kind: Role
+  name: n8n-app-manager
+  apiGroup: rbac.authorization.k8s.io
+---
+# Role with write permissions for the 'production' namespace
+apiVersion: rbac.authorization.k8s.io/v1
+kind: Role
+metadata:
+  name: n8n-app-manager
+  namespace: production
+rules:
+- apiGroups: ["apps"]
+  resources: ["deployments", "statefulsets"]
+  verbs: ["get", "list", "watch", "update", "patch"]
+- apiGroups: [""]
+  resources: ["pods"]
+  verbs: ["get", "list", "watch", "delete"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+metadata:
+  name: n8n-app-manager-binding-prod
+  namespace: production
+subjects:
+- kind: ServiceAccount
+  name: n8n-executor-sa
+  namespace: n8n-automation
+roleRef:
+  kind: Role
+  name: n8n-app-manager
+  apiGroup: rbac.authorization.k8s.io

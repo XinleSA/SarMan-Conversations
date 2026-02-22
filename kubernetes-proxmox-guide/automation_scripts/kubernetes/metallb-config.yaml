@@ -1,0 +1,23 @@
+# =============================================================================
+# MetalLB Configuration
+# =============================================================================
+# Defines the IP address pool and L2 advertisement for MetalLB.
+# Adjust the address range to match your local network.
+# =============================================================================
+apiVersion: metallb.io/v1beta1
+kind: IPAddressPool
+metadata:
+  name: default-pool
+  namespace: metallb-system
+spec:
+  addresses:
+  - 192.168.1.240-192.168.1.250 # Adjust this range for your network
+---
+apiVersion: metallb.io/v1beta1
+kind: L2Advertisement
+metadata:
+  name: default-l2
+  namespace: metallb-system
+spec:
+  ipAddressPools:
+  - default-pool
